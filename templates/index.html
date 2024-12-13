@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Teacher Chatbot</title>
+    <style>
+        #chatbox {
+            width: 60%;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .message {
+            margin: 10px 0;
+        }
+        .user {
+            text-align: right;
+        }
+        .bot {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div id="chatbox"></div>
+    <input type="file" id="fileInput">
+    <input type="text" id="userInput" placeholder="Enter your question">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function typeText(element, text, delay=50) {
+            element.innerHTML = '';
+            for (let i = 0; i < text.length; i++) {
+                element.innerHTML += text[i];
+                await sleep(delay);
+            }
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput').value;
+            const chatbox = document.getElementById('chatbox');
+
+            if (userInput.trim() === '') return;
+
+            const userMessageElement = document.createElement('div');
+            userMessageElement.className = 'message user';
+            userMessageElement.textContent = userInput;
+            chatbox.appendChild(userMessageElement);
+            document.getElementById('userInput').value = '';
+
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: userInput })
+            });
+
+            const data = await response.json();
+            const botMessageElement = document.createElement('div');
+            botMessageElement.className = 'message bot';
+            chatbox.appendChild(botMessageElement);
+            await typeText(botMessageElement, data.response);
+
+            // Scroll to the bottom of the chatbox
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        document.getElementById('fileInput').addEventListener('change', async function() {
+            const file = this.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            alert(data.message);
+        });
+    </script>
+</body>
+</html>
